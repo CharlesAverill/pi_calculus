@@ -2,7 +2,7 @@
 
 A formalization of the Polyadic Pi Calculus in the Coq Interactive Theorem Prover.
 
-I pull from a number of sources (none are very good on their own):
+I pull from a number of sources (none are amazing on their own for my purposes):
 
 - https://inria.hal.science/inria-00072970/document
 - https://link.springer.com/chapter/10.1007/3-540-44929-9_30
