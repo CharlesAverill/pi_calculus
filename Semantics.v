@@ -270,6 +270,10 @@ Add Parametric Relation : process congr
   transitivity proved by Congr_trans
   as congr_setoid.
 
+Add Parametric Relation : process multistep
+  transitivity proved by MTrans
+  as multistep_setoid.
+
 Instance par_proper : Proper (eq ==> congr ==> congr) Par.
 Proof.
   intros x y Hxy xs ys Hxs. subst.
@@ -291,6 +295,9 @@ Proof.
     intros P x y Hxy. unfold Basics.impl. intro.
     eapply MTrans. apply H. apply MCongr, Hxy.
 Qed.
+
+Ltac psimpl := cbn [subst String.eqb Ascii.eqb Bool.eqb].
+Ltac pauto := psimpl; eauto with picalc.
 
 Ltac step :=
     match goal with
@@ -340,22 +347,16 @@ Ltac mstep_rename :=
 Example milner_2_2' :
     (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{# | y<v>,# | x<y>,#}>) /\
     (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
-Proof.
+Proof with pauto.
     split.
     - step.
         -- eapply SStruct.
-            + eapply Congr_Par_assoc.
-            + apply SPar. apply SInput.
-            + cbn [subst String.eqb Ascii.eqb Bool.eqb].
-                apply Congr_refl.
+            + pauto.
+            + pauto.
+            + psimpl. reflexivity.
         -- mstep_rename.
     - step.
         -- eapply SStruct with 
-            (P := <{ (x<y>,# | x(u),u<v>,#) | x<y>,# }>).
-            + eauto with picalc.
-            + apply SPar. apply SInput.
-            + cbn [subst String.eqb Ascii.eqb Bool.eqb].
-                apply Congr_refl.
-        -- apply MTrans with (Q := <{x<y>,# | u<v>,# | #}>).
-            eauto with picalc. mstep_rename.
+            (P := <{ (x<y>,# | x(u),u<v>,#) | x<y>,# }>)...
+        -- transitivity <{x<y>,# | u<v>,# | #}>... mstep_rename.
 Qed.
