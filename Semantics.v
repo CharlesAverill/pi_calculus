@@ -11,18 +11,10 @@ Inductive process : Set :=
 | Input     (x : name) (y : name) (P : process)
 | Output    (x : name) (y : name) (P : process)
 | Par       (P Q : process)
+| Plus      (P Q : process)
 | Restrict  (x : name) (P : process)
 | Copy      (P : process)
 | Nil.
-
-(* Inductive action : Set :=
-| InAction  (x : name)
-| OutAction (x : name)
-| Tau.
-
-Notation "↧ x" := (InAction x) (at level 0) : pi_scope.
-Notation "↥ x" := (OutAction x) (at level 0) : pi_scope.
-Notation "'τ'" := Tau (at level 0) : pi_scope. *)
 
 Declare Custom Entry picalc.
 Notation "<{ e }>" := e (e custom picalc at level 99) : pi_scope.
@@ -39,6 +31,8 @@ Notation "x < y > , P" :=
         (* x at level 91, *)
         y at level 91,
         P at level 91) : pi_scope.
+Notation "x + y" :=
+    (Plus x y) (in custom picalc at level 99, right associativity) : pi_scope.
 Notation "x | y" :=
     (Par x y) (in custom picalc at level 99, right associativity) : pi_scope.
 Notation "[ 'v' x ] P" :=
@@ -75,7 +69,7 @@ Fixpoint free_names (p : process) : list name :=
     match p with
     | <{x(y),P}> => remove string_dec y (free_names P)
     | <{x<y>,P}> => free_names P
-    | <{P|Q}> => free_names P ++ free_names Q
+    | <{P|Q}> | <{P+Q}> => free_names P ++ free_names Q
     | <{[v x] P}> => free_names P
     | <{!P}> => free_names P
     | <{#}> => []
@@ -97,6 +91,8 @@ Fixpoint subst (x : name) (s : name) (t : process) : process :=
         <{y<z>,[x := s]P}>
   | <{P|Q}> =>
       <{([x := s] P)|([x := s] Q)}>
+  | <{P+Q}> =>
+      <{([x := s] P) + ([x := s] Q)}>
   | <{[v y]P}> =>
     if x =? y then
         t
@@ -128,6 +124,13 @@ Inductive congr : process -> process -> Prop :=
 | Congr_Par_inner : forall P P' Q,
     P =c= P' ->
     <{P|Q}> =c= <{P'|Q}>
+| Congr_Plus_comm : forall P Q,
+    <{P + Q}> =c= <{Q + P}>
+| Congr_Plus_assoc : forall P Q R,
+    <{P+Q+R}> =c= <{(P+Q)+R}>
+| Congr_Plus_inner : forall P P' Q,
+    P =c= P' ->
+    <{P+Q}> =c= <{P'+Q}>
 | Congr_Restrict_Nil : forall x, 
     <{[v x] #}> =c= <{#}>
 | Congr_Restrict_comm : forall x y P,
@@ -154,6 +157,9 @@ Inductive step : process -> process -> Prop :=
 | SPar : forall P P' Q,
     P ~> P' ->
     <{P|Q}> ~> <{P'|Q}>
+| SPlus : forall P P' Q,
+    P ~> P' ->
+    <{P+Q}> ~> P'
 | SRes : forall P P' x,
     P ~> P' ->
     <{[v x]P}> ~> <{[v x]P'}>
@@ -246,4 +252,110 @@ Proof.
             now apply Congr_Alpha_Equiv.
 Qed.
 
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Classes.Morphisms.
+Require Import Coq.Setoids.Setoid.
 
+Instance bag_eqv_relation : Equivalence congr.
+Proof.
+  constructor.
+    unfold Reflexive. apply Congr_refl.
+    unfold Symmetric. apply Congr_sym. 
+    unfold Transitive. apply Congr_trans.
+Qed.
+
+Add Parametric Relation : process congr
+  reflexivity proved by Congr_refl
+  symmetry proved by Congr_sym
+  transitivity proved by Congr_trans
+  as congr_setoid.
+
+Instance par_proper : Proper (eq ==> congr ==> congr) Par.
+Proof.
+  intros x y Hxy xs ys Hxs. subst.
+  eapply Congr_trans, Congr_Par_comm.
+  eapply Congr_sym, Congr_trans, Congr_Par_comm.
+  now apply Congr_Par_inner, Congr_sym.
+Qed.
+
+Instance multistep_proper : 
+    forall P, Proper (congr ==> Basics.flip Basics.impl) (multistep P).
+Proof.
+    intros P x y Hxy. unfold Basics.flip, Basics.impl. intro.
+    eapply MTrans. apply H. apply MCongr, Congr_sym, Hxy.
+Qed.
+
+Instance multistep_proper' : 
+    forall P, Proper (congr ==> Basics.impl) (multistep P).
+Proof.
+    intros P x y Hxy. unfold Basics.impl. intro.
+    eapply MTrans. apply H. apply MCongr, Hxy.
+Qed.
+
+Ltac step :=
+    match goal with
+    | [|- ?X ~>* ?Y] => eapply MStep
+    end.
+
+Ltac get_in_out_procs p name :=
+    multimatch p with
+    | <{_<_>,_}> => remember p as name
+    | <{_(_),_}> => remember p as name
+    | <{?P|?Q}> => get_in_out_procs P name + get_in_out_procs Q name
+    end.
+
+Ltac normalize_par :=
+    repeat match goal with
+    | [|- context[<{?A|?B|?C}>]] =>
+        rewrite Congr_Par_assoc
+    end.
+
+Ltac mstep_rename :=
+    multimatch goal with
+    | [|-context[<{?X}> ~>* <{?Y}>]] =>
+        normalize_par;
+        let xname := fresh "term" in
+        let yname := fresh "term" in
+        get_in_out_procs X xname;
+        get_in_out_procs Y yname;
+        eapply MCongr;
+        idtac xname yname;
+        multimatch goal with
+        | [ H0: xname = ?x, H1: yname = ?y |- _ ] =>
+            match x with
+            | Output ?u1 ?v1 _ => match y with
+                | Output ?u2 ?v2 _ =>
+                    idtac H0 H1;
+                    rewrite H0, H1;
+                    match goal with
+                    | [|- ?X0 =c= ?Y0] =>
+                        change Y0 with <{[u1:=u2](X0)}>
+                    end;
+                    now apply Congr_Alpha_Equiv
+                end
+            end
+        end
+    end.
+
+Example milner_2_2' :
+    (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{# | y<v>,# | x<y>,#}>) /\
+    (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
+Proof.
+    split.
+    - step.
+        -- eapply SStruct.
+            + eapply Congr_Par_assoc.
+            + apply SPar. apply SInput.
+            + cbn [subst String.eqb Ascii.eqb Bool.eqb].
+                apply Congr_refl.
+        -- mstep_rename.
+    - step.
+        -- eapply SStruct with 
+            (P := <{ (x<y>,# | x(u),u<v>,#) | x<y>,# }>).
+            + eauto with picalc.
+            + apply SPar. apply SInput.
+            + cbn [subst String.eqb Ascii.eqb Bool.eqb].
+                apply Congr_refl.
+        -- apply MTrans with (Q := <{x<y>,# | u<v>,# | #}>).
+            eauto with picalc. mstep_rename.
+Qed.
