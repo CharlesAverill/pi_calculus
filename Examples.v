@@ -10,7 +10,7 @@ Notation w := "w".
 (* Shows that the semantics are non-deterministic
 
     The state
-        x<y>,# | x(u),u<v>,# | x<y>,#
+        x<y>,# | x(u),u<v>,# | x<z>,#
     can step into two states:
         (1) # | y<v>,# | x<y>,#
         (2) x<y>,# | z<v>,# | #
@@ -24,15 +24,15 @@ Notation w := "w".
     sends to the center thread.
 *)
 Example milner_2_2 :
-    (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{# | y<v>,# | x<y>,#}>) /\
-    (<{x<y>,# | x(u),u<v>,# | x<y>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
+    (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{# | y<v>,# | x<z>,#}>) /\
+    (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
 Proof.
     split.
     - step.
         apply SPar, SInput.
-        psimpl. mstep_rename.
+        pauto.
     - step.
         rotate left. parswap.
         apply SPar, SInput.
-        psimpl. rotate left. parswap. mstep_rename.
+        psimpl. rotate left. parswap. pauto.
 Qed.

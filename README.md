@@ -15,6 +15,8 @@ I pull from a number of sources (none are amazing on their own for my purposes):
 I have an operational semantics defined that allows me to show the evolution of simple processes as presented in [Milner's "The Polyadic pi-Calculus: A Tutorial"](http://www.lfcs.inf.ed.ac.uk/reports/91/ECS-LFCS-91-180/).
 I have written some automation tactics to alleviate some of the complexities with writing these transition proofs manually.
 
+[See examples here](./Examples.v)
+
 ## Structure
 
 Build with `make`

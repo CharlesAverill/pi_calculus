@@ -3,7 +3,7 @@ From Picalc Require Export Congruence.
 Reserved Notation "P '~>' Q" (at level 40).
 Inductive step : process -> process -> Prop :=
 | SInput : forall x y z P Q,
-    <{(x<z>,P)|(x(y),Q)}> ~> <{P|([z := y]Q)}>
+    <{(x<z>,P)|(x(y),Q)}> ~> <{P|([y := z]Q)}>
 | SPar : forall P P' Q,
     P ~> P' ->
     <{P|Q}> ~> <{P'|Q}>
