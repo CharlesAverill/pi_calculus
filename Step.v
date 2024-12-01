@@ -85,6 +85,7 @@ Proof.
 Qed.
 
 Add Parametric Relation : process multistep
+  reflexivity proved by MRefl
   transitivity proved by MTrans
   as multistep_setoid.
 

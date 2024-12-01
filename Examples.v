@@ -30,9 +30,9 @@ Proof.
     split.
     - step.
         apply SPar, SInput.
-        pauto.
+        reflexivity.
     - step.
         rotate left. parswap.
         apply SPar, SInput.
-        psimpl. rotate left. parswap. pauto.
+        rotate left. parswap. reflexivity.
 Qed.
