@@ -24,7 +24,70 @@ Ltac parswap :=
     | [|- _ ~>* _] => apply multistep_Par_swap
     end.
 
-Ltac psimpl := cbn [subst String.eqb Ascii.eqb Bool.eqb].
+Fixpoint unfold_par (p : process) : list process :=
+    match p with
+    | <{P|Q}> =>
+        P :: unfold_par Q
+    | _ => [p]
+    end.
+
+Fixpoint fold_par (l : list process) : process :=
+    match l with
+    | [] => <{#}>
+    | [h] => <{h}>
+    | h :: t => let T := (fold_par t) in <{h|T}>
+    end.
+
+Fixpoint pop {A : Type} (l : list A) (n : nat) : option (A * list A) :=
+    match n, l with
+    | O, h :: t => Some (h, t)
+    | S n', h :: t => 
+        match pop t n' with
+        | None => None
+        | Some (popped, t') =>
+            Some (popped, h :: t')
+        end
+    | _, _ => None
+    end.
+
+Definition bring_to_front {A : Type} (l : list A) (x y : nat) : option (list A) :=
+    match pop l x with
+    | None => None 
+    | Some (xitem, l') =>
+        match pop l' (y - 1) with
+        | None => None
+        | Some (yitem, l'') =>
+            Some (xitem :: yitem :: l'')
+        end
+    end.
+
+Definition bring_procs_to_front (p : process) (x y : nat) : process :=
+    match bring_to_front (unfold_par p) x y with
+    | None => p
+    | Some p' =>
+        fold_par p'
+    end.
+
+Lemma bring_to_front_nil : forall A (l : list A) x y,
+    bring_to_front l x y = Some [] ->
+    l = [].
+Proof.
+    induction l; intros. reflexivity.
+    unfold bring_to_front in H. destruct (pop (a :: l) x) eqn:E.
+    destruct p. destruct (pop l0 (y - 1)) eqn:E0.
+    destruct p. inversion H. inversion H. inversion H.
+Qed.
+
+Lemma unfold_par_nil : forall p,
+    unfold_par p <> [].
+Proof.
+    induction p; discriminate.
+Qed.
+
+Ltac psimpl := 
+    cbn [subst String.eqb Ascii.eqb Bool.eqb];
+    cbv [bring_procs_to_front bring_to_front unfold_par pop PeanoNat.Nat.sub
+        fold_par].
 Ltac pauto := psimpl; eauto with picalc.
 
 Ltac step :=
@@ -75,3 +138,23 @@ Ltac mstep_rename :=
         eapply MCongr;
         mstep_rename_congr xname yname
     end.
+
+Tactic Notation "bring" "to" "front" constr(x) constr(y) :=
+    match goal with [|- ?X ~> ?Y] =>
+        eapply SStruct with (P := bring_procs_to_front X x y);
+            [pauto|psimpl|reflexivity]
+    end.
+
+Tactic Notation "send" constr(x) "->" constr(y) :=
+    bring to front x y;
+    match goal with
+    | [|- <{_(_),_|_<_>,_|_}> ~> _] =>
+        parswap
+    | [|- <{_(_),_|_<_>,_}> ~> _] =>
+        parswap
+    | _ => idtac
+    end;
+    eapply SStruct;
+        [apply Congr_Par_assoc
+        |apply SPar, SInput
+        |idtac].

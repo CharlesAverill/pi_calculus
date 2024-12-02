@@ -5,7 +5,6 @@ Notation y := "y".
 Notation z := "z".
 Notation u := "u".
 Notation v := "v".
-Notation w := "w".
 
 (* Shows that the semantics are non-deterministic
 
@@ -23,16 +22,18 @@ Notation w := "w".
     In (2), the same thing happens, but it is instead the rightmost thread that
     sends to the center thread.
 *)
+
 Example milner_2_2 :
     (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{# | y<v>,# | x<z>,#}>) /\
     (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
 Proof.
     split.
     - step.
-        apply SPar, SInput.
+        send 0 -> 1.
+        rewrite <- Congr_Par_assoc; reflexivity. 
         reflexivity.
     - step.
-        rotate left. parswap.
-        apply SPar, SInput.
-        rotate left. parswap. reflexivity.
+        send 1 -> 2.
+            rewrite <- Congr_Par_assoc. reflexivity.
+        parswap. rotate right. reflexivity.
 Qed.

@@ -19,14 +19,14 @@ Inductive congr : process -> process -> Prop :=
 | Congr_Par_comm : forall P Q, 
     <{P|Q}> =c= <{Q|P}>
 | Congr_Par_assoc : forall P Q R, 
-    <{P|Q|R}> =c= <{P|(Q|R)}>
+    <{P|Q|R}> =c= <{(P|Q)|R}>
 | Congr_Par_inner : forall P P' Q,
     P =c= P' ->
     <{P|Q}> =c= <{P'|Q}>
 | Congr_Plus_comm : forall P Q,
     <{P + Q}> =c= <{Q + P}>
 | Congr_Plus_assoc : forall P Q R,
-    <{P+Q+R}> =c= <{P+(Q+R)}>
+    <{P+Q+R}> =c= <{(P+Q)+R}>
 | Congr_Plus_inner : forall P P' Q,
     P =c= P' ->
     <{P+Q}> =c= <{P'+Q}>
@@ -51,6 +51,7 @@ Hint Constructors congr : picalc.
 Lemma Congr_Par_rotate_l : forall P Q R,
     <{P|Q|R}> =c= <{Q|R|P}>.
 Proof. eauto with picalc. Qed.
+    
 
 Lemma Congr_Par_rotate_r : forall P Q R,
     <{P|Q|R}> =c= <{R|P|Q}>.

@@ -33,9 +33,9 @@ Notation "x < y > , P" :=
         y at level 91,
         P at level 91) : pi_scope.
 Notation "x + y" :=
-    (Plus x y) (in custom picalc at level 99, left associativity) : pi_scope.
+    (Plus x y) (in custom picalc at level 99, right associativity) : pi_scope.
 Notation "x | y" :=
-    (Par x y) (in custom picalc at level 99, left associativity) : pi_scope.
+    (Par x y) (in custom picalc at level 99, right associativity) : pi_scope.
 Notation "[ 'v' x ] P" :=
     (Restrict x P) (in custom picalc at level 90,
         x at level 91,

@@ -58,7 +58,7 @@ Proof. eauto with picalc. Qed.
 Lemma Step_Par_swap : forall P Q R X,
     <{Q|P|R}> ~> X ->
     <{P|Q|R}> ~> X.
-Proof. eauto with picalc. Qed.
+Proof. intros; eapply SStruct; eauto with picalc. Qed.
 
 Lemma multistep_Par_rotate_l : forall P Q R X,
     <{Q|R|P}> ~>* X ->
@@ -73,7 +73,10 @@ Proof. eauto with picalc. Qed.
 Lemma multistep_Par_swap : forall P Q R X,
     <{Q|P|R}> ~>* X ->
     <{P|Q|R}> ~>* X.
-Proof. eauto with picalc. Qed.
+Proof with eauto with picalc.
+    intros. apply MTrans with <{Q|P|R}>...
+    apply MCongr, Congr_Par_swap.
+Qed.
 
 Lemma mstep_congr_trans :
     forall P Q R,
