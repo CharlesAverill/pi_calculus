@@ -9,10 +9,10 @@ Notation v := "v".
 (* Shows that the semantics are non-deterministic
 
     The state
-        x<y>,# | x(u),u<v>,# | x<z>,#
-    can step into two states:
-        (1) # | y<v>,# | x<y>,#
-        (2) x<y>,# | z<v>,# | #
+        x<y>,P | x(u),u<v>,Q | x<z>,R
+    can step into two states (ignoring substitution for now):
+        (1) P | y<v>,Q | x<y>,R
+        (2) x<y>,P | z<v>,Q | R
     
     In (1), the leftmost thread sends the message "y" on the channel "x" to the 
     center thread. The center thread receives, binds its input to "u", and then 
@@ -23,17 +23,11 @@ Notation v := "v".
     sends to the center thread.
 *)
 
-Example milner_2_2 :
-    (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{# | y<v>,# | x<z>,#}>) /\
-    (<{x<y>,# | x(u),u<v>,# | x<z>,#}> ~>* <{x<y>,# | z<v>,# | #}>).
+Example milner_2_2 : forall P Q R,
+    (<{x<y>,P | x(u),u<v>,Q | x<z>,R}> ~>* <{P | y<v>,[u:=y]Q | x<z>,R}>) /\
+    (<{x<y>,P | x(u),u<v>,Q | x<z>,R}> ~>* <{x<y>,P | z<v>,[u:=z]Q | R}>).
 Proof.
     split.
-    - step.
-        send 0 -> 1.
-        rewrite <- Congr_Par_assoc; reflexivity. 
-        reflexivity.
-    - step.
-        send 1 -> 2.
-            rewrite <- Congr_Par_assoc. reflexivity.
-        parswap. rotate right. reflexivity.
+    - send 0 <-> 1.
+    - send 1 <-> 2.
 Qed.

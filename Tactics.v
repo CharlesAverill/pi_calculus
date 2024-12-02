@@ -145,8 +145,9 @@ Tactic Notation "bring" "to" "front" constr(x) constr(y) :=
             [pauto|psimpl|reflexivity]
     end.
 
-Tactic Notation "send" constr(x) "->" constr(y) :=
-    bring to front x y;
+Tactic Notation "send" constr(x) "<->" constr(y) :=
+    step;
+    [(bring to front x y;
     match goal with
     | [|- <{_(_),_|_<_>,_|_}> ~> _] =>
         parswap
@@ -157,4 +158,5 @@ Tactic Notation "send" constr(x) "->" constr(y) :=
     eapply SStruct;
         [apply Congr_Par_assoc
         |apply SPar, SInput
-        |idtac].
+        |rewrite <- Congr_Par_assoc; reflexivity])
+    |idtac]; pauto.
